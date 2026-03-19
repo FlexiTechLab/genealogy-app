@@ -1,0 +1,181 @@
+services:
+  # --- Database: PostgreSQL ---
+  genealogy_db:
+    image: postgres:18-bookworm
+    container_name: ${COMPOSE_PROJECT_NAME}_db
+    restart: always
+    environment:
+      TZ: UTC
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_ENV: ${APP_ENV}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - frontend_net
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # --- SeaweedFS Stack (Object Storage) ---
+  sw_master:
+    image: chrislusf/seaweedfs
+    # Add -mdir to save the Raft state, preventing leader re-election upon restart.
+    command: 'master -ip=sw_master -mdir=/data'
+    container_name: ${COMPOSE_PROJECT_NAME}_sw_master
+    volumes:
+      - sw_master_data:/data
+    networks:
+      - storage_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  sw_volume:
+    image: chrislusf/seaweedfs
+    command: 'volume -mserver="sw_master:9333" -port=8080 -ip=sw_volume -max=10'
+    container_name: ${COMPOSE_PROJECT_NAME}_sw_volume
+    depends_on:
+      sw_master:
+        condition: service_healthy
+    volumes:
+      - sw_data:/data
+    networks:
+      - storage_net
+
+  sw_filer:
+    image: chrislusf/seaweedfs
+    # The S3 API defaults to port 8333 when the -s3 flag is enabled.
+    command: 'filer -s3 -master="sw_master:9333" -ip=sw_filer'
+    container_name: ${COMPOSE_PROJECT_NAME}_sw_filer
+    ports:
+      - "8333:8333" # S3 API for backend/tools
+      - "8888:8888" # Filer UI for viewing files
+    depends_on:
+      genealogy_db:
+        condition: service_healthy
+      sw_master:
+        condition: service_healthy
+      sw_volume:
+        condition: service_started
+    volumes:
+      - ../../apps/backend/internal/config/filer.toml:/etc/seaweedfs/filer.toml
+    networks:
+      - frontend_net
+      - backend_net
+      - storage_net
+    environment:
+      WEED_LEVELDB2_ENABLED: "false"
+      WEED_POSTGRES_ENABLED: "true"
+      WEED_POSTGRES_HOSTNAME: genealogy_db
+      WEED_POSTGRES_POST: 5432
+      WEED_POSTGRES_DATABASE: ${DB_NAME}
+      WEED_POSTGRES_USERNAME: ${DB_USER}
+      WEED_POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- Backend: Golang API ---
+  backend:
+    build:
+      context: ../../
+      dockerfile: ./deployments/docker/backend/Dockerfile.${APP_ENV}
+    container_name: ${COMPOSE_PROJECT_NAME}_api
+    restart: always
+    depends_on:
+      genealogy_db:
+        condition: service_healthy
+      sw_filer:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT}:8080"
+    environment:
+      TZ: ${APP_TIMEZONE}
+      GIN_MODE: ${GIN_MODE}
+      DB_DSN: host=${DB_HOST} user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} port=${DB_PORT} sslmode=disable TimeZone=${APP_TIMEZONE}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      # Configure S3 to point to the internal SeaweedFS.
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      STORAGE_TYPE: ${STORAGE_TYPE}
+    volumes:
+      - ../../apps/backend:/app
+      - backend_tmp:/app/tmp
+    networks:
+      - frontend_net
+      - backend_net
+
+  # --- Frontend: Next.js ---
+  frontend:
+    build:
+      context: ../../
+      dockerfile: ./deployments/docker/web-pwa/Dockerfile.${APP_ENV}
+    container_name: ${COMPOSE_PROJECT_NAME}_web
+    restart: always
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    volumes:
+      - ../../apps/web-pwa:/app
+      - /app/node_modules
+    networks:
+      - frontend_net
+
+  # --- DB Management ---
+  adminer:
+    image: adminer
+    container_name: ${COMPOSE_PROJECT_NAME}_adminer
+    restart: always
+    ports:
+      - "${ADMINER_PORT}:8080"
+    networks:
+      - frontend_net
+      - backend_net
+
+networks:
+  # Connect Client -> Web -> API
+  frontend_net:
+    name: ${COMPOSE_PROJECT_NAME}_frontend
+    driver: bridge
+  # Connect API -> DB, Filer -> DB
+  backend_net:
+    name: ${COMPOSE_PROJECT_NAME}_backend
+    driver: bridge
+    internal: true
+  # Connect internal SeaweedFS (Master <-> Volume <-> Filer)
+  storage_net:
+    name: ${COMPOSE_PROJECT_NAME}_storage
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+    name: ${COMPOSE_PROJECT_NAME}_postgres_storage
+  sw_data:
+    name: ${COMPOSE_PROJECT_NAME}_seaweed_storage
+  sw_master_data:
+    name: ${COMPOSE_PROJECT_NAME}_sw_master_storage
+  backend_tmp:
+    name: ${COMPOSE_PROJECT_NAME}_backend_cache

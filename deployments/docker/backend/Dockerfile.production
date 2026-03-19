@@ -1,0 +1,44 @@
+# Stage 1: Build
+FROM golang:1.26.1-alpine3.23 AS builder
+
+# Install necessary tools for CGO and downloading dependencies
+RUN apk add --no-cache git gcc musl-dev
+
+WORKDIR /app
+
+# Leverage Docker layer caching for dependencies
+# Only re-downloads if go.mod or go.sum changes
+COPY apps/backend/go.mod apps/backend/go.sum ./
+RUN go mod download && go mod verify
+
+# Copy the application source code
+COPY apps/backend/ .
+
+# Build the binary
+# -ldflags="-s -w" reduces binary size by removing debug information
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/main ./cmd/api/main.go
+
+# # Stage 2: Final (Runtime)
+FROM alpine:latest
+WORKDIR /app
+
+# # Install tzdata for timezone support (e.g., "Asia/Ho_Chi_Minh")
+# # Install ca-certificates for secure outgoing HTTPS requests
+RUN apk --no-cache add ca-certificates tzdata
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /app/main .
+COPY --from=builder /app/migrations ./migrations
+
+# Security: Create a user account without root privileges to run the app (High security)
+RUN adduser -D internaluser && \
+    mkdir -p /app/storage && \
+    chown -R internaluser:internaluser /app
+
+USER internaluser
+
+# Documentation: Inform Docker that the container listens on port 8080
+EXPOSE 8080
+
+# Execution: Run the binary
+CMD ["./main"]

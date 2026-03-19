@@ -1,0 +1,7 @@
+DROP INDEX IF EXISTS idx_persons_tree;
+DROP INDEX IF EXISTS idx_branches_tree;
+
+DROP TABLE IF EXISTS marriages;
+DROP TABLE IF EXISTS persons;
+DROP TABLE IF EXISTS branches;
+DROP TABLE IF EXISTS trees;

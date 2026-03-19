@@ -1,0 +1,93 @@
+# ==========================================
+# 1. SYSTEM & IDE (Dành cho mọi nền tảng)
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ==========================================
+# 2. BACKEND (Golang - Gin)
+# ==========================================
+# Binaries và Build artifacts
+apps/backend/bin/
+apps/backend/out/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+apps/backend/backend_app 
+
+# Go Workspace & Dependencies
+go.work
+go.work.sum
+vendor/
+apps/backend/vendor/
+
+# Temporary & Logs
+apps/backend/tmp/
+apps/backend/backend_tmp/ # Thư mục lưu file tạm SeaweedFS/Log
+*.log
+logs/
+
+# ==========================================
+# 3. WEB-PWA (React - Next.js)
+# ==========================================
+node_modules/
+.next/
+out/
+dist/
+.cache/
+.parcel-cache/
+.eslintcache
+.npm
+.yarn-integrity
+*.tsbuildinfo
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output
+
+# ==========================================
+# 4. DEVELOPMENTS & DOCKER
+# ==========================================
+# Dữ liệu Volume của Docker
+developments/docker/data/
+developments/docker/db_data/
+developments/docker/seaweedfs_data/
+developments/docker/pgadmin_data/
+
+# Log của container
+developments/docker/logs/
+
+# ==========================================
+# 5. ENVIRONMENT & SECRETS (BẢO MẬT)
+# ==========================================
+# Chặn mọi file .env ở mọi cấp thư mục
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Ngoại trừ file mẫu để đồng đội biết đường cấu hình
+! .env.example
+
+# ==========================================
+# 6. SHELL SCRIPTS
+# ==========================================
+# Nếu bạn tạo các file backup hoặc script tạo tự động có chứa pass
+developments/*.backup.sh

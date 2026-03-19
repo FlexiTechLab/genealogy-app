@@ -1,0 +1,24 @@
+# Stage 1: Build
+FROM golang:1.26.1-alpine3.23 AS builder
+
+# Install necessary tools for CGO and downloading dependencies
+RUN apk add --no-cache git gcc musl-dev ca-certificates tzdata
+
+# Install Air
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+# Leverage Docker layer caching for dependencies
+# Only re-downloads if go.mod or go.sum changes
+COPY apps/backend/go.mod apps/backend/go.sum ./
+RUN go mod download && go mod verify
+
+# Copy the application source code
+COPY apps/backend/ .
+
+RUN mkdir -p /app/tmp && chmod -R 777 /app/tmp
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".air.toml"]

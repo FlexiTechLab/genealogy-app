@@ -1,0 +1,23 @@
+# ############################################################
+# # SeaweedFS Filer Configuration
+# # Backend Store: PostgreSQL (Standard version 1)
+# ############################################################
+
+# [postgres]
+# # Mandatory: Enable PostgreSQL as the metadata store
+# enabled = true
+
+# # Database connection details
+# # Note: Hostname must match the service name in docker-compose.yml
+# hostname = "genealogy_db"
+# port     = 5432
+# # username = "postgres_admin"
+# # password = "genealogy_app_admin"
+# # database = "genealogy_db"
+# sslmode  = "disable" # Change to "require" or "verify-full" in production!
+
+# # Connection Pooling Settings
+# # Optimized for high-concurrency environments
+# connection_max_idle = 50
+# connection_max_open = 100
+# connection_max_lifetime_seconds = 3600

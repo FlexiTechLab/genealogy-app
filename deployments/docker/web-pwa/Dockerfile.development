@@ -1,0 +1,18 @@
+# Stage 1: Build
+FROM node:24-alpine3.23
+
+WORKDIR /app
+
+# Leverage Docker layer caching for dependencies
+# Re-installs only if package files change
+COPY apps/web-pwa/package.json apps/web-pwa/package-lock.json* ./
+RUN npm install
+
+# Development port for Next.js
+EXPOSE 3000
+
+ENV NODE_ENV=development
+ENV WATCHPACK_POLLING=true
+
+# Default to development mode. 
+CMD ["npm", "run", "dev"]

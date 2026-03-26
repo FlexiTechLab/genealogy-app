@@ -1,0 +1,27 @@
+info:
+  name: Get Ancestors Tree
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{base_url}}/trees/:tree_id/persons/:id_person/ancestors?depth=5"
+  params:
+    - name: depth
+      value: "5"
+      type: query
+    - name: id_person
+      value: 019d2848-527f-7549-9165-91657d4725eb
+      type: path
+    - name: tree_id
+      value: 019d2848-5228-7551-934d-934dae4131fa
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Từ đời 6 truy ngược lên 5 đời đến tận đời 1

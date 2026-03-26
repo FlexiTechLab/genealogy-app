@@ -1,0 +1,24 @@
+info:
+  name: Get Person Detail - Metadata
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{base_url}}/trees/:tree_id/persons/:id_person"
+  params:
+    - name: id_person
+      value: 019d2848-5272-7853-bf7c-7f7ce99a0399
+      type: path
+    - name: tree_id
+      value: 019d2848-5228-7551-934d-934dae4131fa
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: "Kiểm tra JSON Metadata: ```occupation: Backend Developer```"

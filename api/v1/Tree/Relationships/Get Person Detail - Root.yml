@@ -1,0 +1,24 @@
+info:
+  name: Get Person Detail - Root
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{base_url}}/trees/:tree_id/persons/:id_person_root"
+  params:
+    - name: id_person_root
+      value: 019d2848-5237-7110-9fd0-9fd04dc460b9
+      type: path
+    - name: tree_id
+      value: 019d2848-5228-7551-934d-934dae4131fa
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Trả về thông tin cụ thể của một người (bao gồm vợ và các con)

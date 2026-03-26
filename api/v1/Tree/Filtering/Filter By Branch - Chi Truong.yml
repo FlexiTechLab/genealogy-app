@@ -1,0 +1,24 @@
+info:
+  name: Filter By Branch - Chi Truong
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{base_url}}/trees/:tree_id/persons?branch_id=019d2848-522c-7f0f-968d-968d48929b0c"
+  params:
+    - name: branch_id
+      value: 019d2848-522c-7f0f-968d-968d48929b0c
+      type: query
+    - name: tree_id
+      value: 019d2848-5228-7551-934d-934dae4131fa
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Lấy những người thuộc Chi Trưởng

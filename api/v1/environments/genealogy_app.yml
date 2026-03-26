@@ -1,0 +1,4 @@
+name: genealogy_app
+variables:
+  - name: base_url
+    value: http://localhost:8081/api/v1

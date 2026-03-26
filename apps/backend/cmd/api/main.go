@@ -3,11 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/config"
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/handlers"
-	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/middlewares"
+
+	// "github.com/FlexiTechLab/genealogy-app/apps/backend/internal/middlewares"
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/repository"
 	"github.com/gin-gonic/gin"
 )
@@ -20,10 +22,13 @@ func main() {
 	}
 	db := dbInstance.Db
 
-	// Init Layers
-	personRepo := repository.NewPersonRepository(db)
-	personHandler := handlers.NewPersonHandler(personRepo)
+	// Init Repositories 
+	personQueryRepo := repository.NewPersonQueryRepository(db)
 
+	// Init Handlers 
+	genealogyHandler := handlers.NewGenealogyHandler(personQueryRepo)
+
+	// Router 
 	// Initialize the router to default settings.
 	r := gin.Default()
 
@@ -73,34 +78,50 @@ func main() {
 			}
 		})
 
-		admin := v1.Group("/admin")
-		admin.Use(middlewares.AuthMiddleware())
+		// -- Trees & Genealogy (authenticated)
+		trees := v1.Group("/trees")
+		// trees.Use(middlewares.AuthMiddleware())
 		{
-			// --- PERSONS RESOURCE ---
-			personGroup := admin.Group("/persons")
-			{
-				personGroup.GET("/", func(c *gin.Context) {})
-				// Get details for one person (ancestors for 3 generations)
-				personGroup.GET("/:id", personHandler.GetPersonDetail)
+			// Filter and search members within a specific family tree
+			// GET /api/v1/trees/:tree_id/persons
+			// Query: branch_id, gender, is_alive, generation_number, full_name, page, page_size
+			trees.GET("/:tree_id/persons", genealogyHandler.FilterPersons)
 
-				// Recover a person who has been soft-deleted.
-				personGroup.POST("/:id/restore", personHandler.RestorePerson)
+			// Retrieve person details: parents, spouses, children, and siblings
+			// GET /api/v1/trees/:tree_id/persons/:person_id
+			trees.GET("/:tree_id/persons/:person_id", genealogyHandler.GetPersonDetail)
 
-				// personGroup.POST("/", personHandler.CreatePerson)
-				// personGroup.PUT("/:id", personHandler.UpdatePerson)
-				// personGroup.DELETE("/:id", personHandler.SoftDeletePerson)
-			}
+			// Retrieve comprehensive lineage: ancestors (upward) and descendants (downward).
+			// GET /api/v1/trees/:tree_id/persons/:person_id/lineage
+			// Query: ancestor_depth (1-10, default=3), descendant_depth (1-10, default=3)
+			trees.GET("/:tree_id/persons/:person_id/lineage", genealogyHandler.GetLineage)
 
-			// --- TREES RESOURCE ---
-			treeGroup := v1.Group("/trees")
-			{
-				// Get a list of people who have been deleted from a family tree (Trash).
-				treeGroup.GET("/:tree_id/trash", personHandler.GetTrashBin)
-			}
+			// Retrieve ancestor tree only (moving upward)
+			// GET /api/v1/trees/:tree_id/persons/:person_id/ancestors
+			// Query: depth (1-10, default=3)
+			trees.GET("/:tree_id/persons/:person_id/ancestors", genealogyHandler.GetAncestors)
+
+			// Retrieve descendant tree only (moving downward)
+			// GET /api/v1/trees/:tree_id/persons/:person_id/descendants
+			// Query: depth (1-10, default=3)
+			trees.GET("/:tree_id/persons/:person_id/descendants", genealogyHandler.GetDescendants)
+
+			// Calculate the relationship terminology between two individuals
+			// GET /api/v1/trees/:tree_id/relationship
+			// Query: person_a_id (required), person_b_id (required)
+			trees.GET("/:tree_id/relationship", genealogyHandler.GetRelationship)
 		}
 	}
 
 	// Start the server on port 8080
-	log.Println("🌐 Server starting on :8080")
-	r.Run(":8080")
+	port := os.Getenv("BACKEND_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🌐 Server starting on :%s", port)
+
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("❌ Failed to start server: %v", err)
+	}
 }

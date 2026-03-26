@@ -25,6 +25,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # --- Cache & Session: Redis ---
+  genealogy_redis:
+    image: redis:alpine
+    container_name: ${COMPOSE_PROJECT_NAME}_redis
+    restart: always
+    # No need to expose ports to the host if only the backend uses it.
+    # If you need to debug locally: - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - frontend_net
+      - backend_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   
   # --- SeaweedFS Stack (Object Storage) ---
   sw_master:
@@ -32,6 +51,7 @@ services:
     # Add -mdir to save the Raft state, preventing leader re-election upon restart.
     command: 'master -ip=sw_master -mdir=/data'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_master
+    restart: always
     volumes:
       - sw_master_data:/data
     networks:
@@ -47,6 +67,7 @@ services:
     image: chrislusf/seaweedfs
     command: 'volume -mserver="sw_master:9333" -port=8080 -ip=sw_volume -max=10'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_volume
+    restart: always
     depends_on:
       sw_master:
         condition: service_healthy
@@ -60,6 +81,7 @@ services:
     # The S3 API defaults to port 8333 when the -s3 flag is enabled.
     command: 'filer -s3 -master="sw_master:9333" -ip=sw_filer'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_filer
+    restart: always
     ports:
       - "8333:8333" # S3 API for backend/tools
       - "8888:8888" # Filer UI for viewing files
@@ -103,6 +125,8 @@ services:
         condition: service_healthy
       sw_filer:
         condition: service_healthy
+      genealogy_redis:
+        condition: service_healthy
     ports:
       - "${BACKEND_PORT}:8080"
     environment:
@@ -110,6 +134,8 @@ services:
       GIN_MODE: ${GIN_MODE}
       DB_DSN: host=${DB_HOST} user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} port=${DB_PORT} sslmode=disable TimeZone=${APP_TIMEZONE}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      REDIS_ADDR: genealogy_redis:6379
+      REDIS_PASSWORD: ""
       # Configure S3 to point to the internal SeaweedFS.
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION}
@@ -173,6 +199,8 @@ networks:
 volumes:
   postgres_data:
     name: ${COMPOSE_PROJECT_NAME}_postgres_storage
+  redis_data:
+    name: ${COMPOSE_PROJECT_NAME}_redis_storage
   sw_data:
     name: ${COMPOSE_PROJECT_NAME}_seaweed_storage
   sw_master_data:

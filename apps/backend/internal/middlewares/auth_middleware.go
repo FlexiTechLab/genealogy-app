@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/config"
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -11,34 +12,30 @@ import (
 // AuthMiddleware checks if the request contains a valid token.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get token from Header "Authorization: Bearer <token>"
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			utils.Error(c, http.StatusUnauthorized, "Authorization header is required")
-			c.Abort() // Stop further processing immediately
+		header := c.GetHeader("Authorization")
+		if header == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
 			return
 		}
 
-		// Check Bearer format
-		parts := strings.SplitN(authHeader, " ", 2)
-		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			utils.Error(c, http.StatusUnauthorized, "Authorization header format must be Bearer {token}")
-			c.Abort()
+		// Expected format: "Bearer <token>"
+		parts := strings.SplitN(header, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization format must be Bearer {token}"})
 			return
 		}
 
-		tokenString := parts[1]
-
-		// Token Authentication Logic
-		claims, err := utils.VerifyJWT(tokenString)
+		// Use global RedisClient to check blacklist during verification
+		claims, err := utils.VerifyJWT(c.Request.Context(), parts[1], config.RedisClient)
 		if err != nil {
-			utils.Error(c, http.StatusUnauthorized, "Login session has expired or is invalid")
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.Set("userID", claims.UserID)
-		c.Set("userRole", claims.Role)
+		// Inject claims into context for downstream handlers
+		c.Set("user_id", claims.UserID)
+		c.Set("user_role", claims.Role)
+		c.Set("claims", claims)
 
 		c.Next()
 	}

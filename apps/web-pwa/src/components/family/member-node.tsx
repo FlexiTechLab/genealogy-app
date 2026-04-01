@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { FamilyMember } from '@/types';
+import { FamilyMember } from '@/types/genealogy';
 
 export function MemberNode({ data }: { data: FamilyMember }) {
     const [isMounted, setIsMounted] = useState(false);

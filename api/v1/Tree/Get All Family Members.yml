@@ -1,15 +1,12 @@
 info:
-  name: Filter By Gender Male
+  name: Get All Family Members
   type: http
-  seq: 2
+  seq: 4
 
 http:
   method: GET
-  url: "{{base_url}}/trees/:tree_id/persons?gender=1"
+  url: "{{base_url}}/trees/:tree_id/persons"
   params:
-    - name: gender
-      value: "1"
-      type: query
     - name: tree_id
       value: 019d2848-5228-7551-934d-934dae4131fa
       type: path
@@ -20,5 +17,3 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
-
-docs: Lấy danh sách đinh (nam giới) trong họ

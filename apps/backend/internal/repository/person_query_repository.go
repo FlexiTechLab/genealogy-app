@@ -19,6 +19,7 @@ import (
 type PersonQueryRepository interface {
 	// Filter & Search
 	FilterPersons(ctx context.Context, req domain.PersonFilterRequest) (*domain.PaginatedPersons, error)
+	GetAllFamilyMembers(ctx context.Context, treeID uuid.UUID) ([]domain.PersonSummary, error)
 
 	// Get Person Detail (Parents, Spouses, Children, Siblings)
 	GetPersonDetail(ctx context.Context, treeID, personID uuid.UUID) (*domain.PersonDetail, error)
@@ -171,6 +172,69 @@ func (r *personQueryRepository) FilterPersons(ctx context.Context, req domain.Pe
 		PageSize:   req.PageSize,
 		TotalPages: int(math.Ceil(float64(totalCount) / float64(req.PageSize))),
 	}, nil
+}
+
+func (r *personQueryRepository) GetAllFamilyMembers(ctx context.Context, treeID uuid.UUID) ([]domain.PersonSummary, error) {
+	var persons []models.Person
+	if err := r.db.WithContext(ctx).
+		Where("tree_id = ?", treeID).
+		Order("generation_number ASC, birth_order ASC").
+		Find(&persons).Error; err != nil {
+		return nil, err
+	}
+
+	if len(persons) == 0 {
+		return []domain.PersonSummary{}, nil
+	}
+
+	personMap := make(map[uuid.UUID]domain.PersonSummary)
+	personIDs := make([]uuid.UUID, len(persons))
+
+	for i, p := range persons {
+		summary := toPersonSummary(p)
+		summary.Spouses = []domain.SpouseShortInfo{}
+		personMap[p.ID] = summary
+		personIDs[i] = p.ID
+	}
+
+	var marriages []models.Marriage
+	if err := r.db.WithContext(ctx).
+		Where("tree_id = ?", treeID).
+		Order("marriage_order ASC").
+		Find(&marriages).Error; err != nil {
+		return nil, err
+	}
+
+	for _, m := range marriages {
+		husband, hOk := personMap[m.HusbandID]
+		wife, wOk := personMap[m.WifeID]
+
+		if hOk && wOk {
+			husband.Spouses = append(husband.Spouses, domain.SpouseShortInfo{
+				ID:       wife.ID,
+				FullName: wife.FullName,
+				Gender:   wife.Gender,
+			})
+			personMap[m.HusbandID] = husband
+
+			wife.Spouses = append(wife.Spouses, domain.SpouseShortInfo{
+				ID:       husband.ID,
+				FullName: husband.FullName,
+				Gender:   husband.Gender,
+			})
+			personMap[m.WifeID] = wife
+		}
+	}
+
+	result := make([]domain.PersonSummary, 0, len(personMap))
+
+	for _, p := range persons {
+		if summary, exists := personMap[p.ID]; exists {
+			result = append(result, summary)
+		}
+	}	
+
+	return result, nil
 }
 
 // ==================================================

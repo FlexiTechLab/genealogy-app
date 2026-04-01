@@ -20,7 +20,7 @@ func NewGenealogyHandler(repo repository.PersonQueryRepository) *GenealogyHandle
 }
 
 // ==================================================
-// GET /api/v1/trees/:tree_id/persons
+// GET /api/v1/trees/:tree_id/persons/search/
 // Filter and search members within a specific family tree
 // Query: branch_id, gender, is_alive, generation_number, full_name, page, page_size
 // ==================================================
@@ -39,6 +39,26 @@ func (h *GenealogyHandler) FilterPersons(c *gin.Context) {
 	req.TreeID = treeIDStr
 
 	result, err := h.repo.FilterPersons(c.Request.Context(), req)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.Success(c, result, "Lấy danh sách thành viên thành công")
+}
+
+// ==================================================
+// GET /api/v1/trees/:tree_id/persons
+// GetAllFamilyMembers handles the HTTP GET request to retrieve the ENTIRE genealogy tree
+// ==================================================
+func (h *GenealogyHandler) GetAllFamilyMembers(c *gin.Context) {
+	treeID, err := uuid.Parse(c.Param("tree_id"))
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "tree_id không hợp lệ")
+		return
+	}
+
+	result, err := h.repo.GetAllFamilyMembers(c, treeID)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return

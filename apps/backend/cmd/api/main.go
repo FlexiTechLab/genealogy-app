@@ -22,13 +22,13 @@ func main() {
 	}
 	db := dbInstance.Db
 
-	// Init Repositories 
+	// Init Repositories
 	personQueryRepo := repository.NewPersonQueryRepository(db)
 
-	// Init Handlers 
+	// Init Handlers
 	genealogyHandler := handlers.NewGenealogyHandler(personQueryRepo)
 
-	// Router 
+	// Router
 	// Initialize the router to default settings.
 	r := gin.Default()
 
@@ -85,7 +85,11 @@ func main() {
 			// Filter and search members within a specific family tree
 			// GET /api/v1/trees/:tree_id/persons
 			// Query: branch_id, gender, is_alive, generation_number, full_name, page, page_size
-			trees.GET("/:tree_id/persons", genealogyHandler.FilterPersons)
+			trees.GET("/:tree_id/persons/search", genealogyHandler.FilterPersons)
+
+			// GET /api/v1/trees/:tree_id/persons
+			// GetAllFamilyMembers handles the HTTP GET request to retrieve the ENTIRE genealogy tree
+			trees.GET("/:tree_id/persons", genealogyHandler.GetAllFamilyMembers)
 
 			// Retrieve person details: parents, spouses, children, and siblings
 			// GET /api/v1/trees/:tree_id/persons/:person_id

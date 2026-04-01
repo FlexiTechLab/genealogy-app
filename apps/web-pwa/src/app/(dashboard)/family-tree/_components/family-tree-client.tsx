@@ -51,7 +51,7 @@ export default function FamilyTreePage() {
                 .parentId(d => d.parent_id);
 
             const hierarchy = stratify(dataWithVirtualRoot);
-            const root = d3.tree<any>().nodeSize([250, 200])(hierarchy);
+            const root = d3.tree<any>().nodeSize([200, 200])(hierarchy);
 
             const nodes: FamilyNode[] = root.descendants()
                 .filter(d => {
@@ -108,6 +108,9 @@ export default function FamilyTreePage() {
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={false}
                 nodeTypes={nodeTypes}
                 fitView
                 onlyRenderVisibleElements

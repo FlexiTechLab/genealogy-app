@@ -103,13 +103,13 @@ func (h *GenealogyHandler) GetAncestors(c *gin.Context) {
 	depth := queryIntDefault(c, "depth", 3, 1, 10)
 
 	result, err := h.repo.GetLineageFromPerson(c.Request.Context(), treeID, personID, depth, 0)
-	if err != nil {
-		utils.Error(c, http.StatusNotFound, err.Error())
-		return
-	}
+    if err != nil {
+        utils.Error(c, http.StatusNotFound, err.Error())
+        return
+    }
 
 	utils.Success(c, gin.H{
-		"root":      result.Root.PersonSummary,
+		"root":      result.Root,
 		"ancestors": result.Ancestors,
 	}, "Lấy cây tổ tiên thành công")
 }

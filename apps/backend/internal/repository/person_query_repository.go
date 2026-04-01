@@ -101,9 +101,67 @@ func (r *personQueryRepository) FilterPersons(ctx context.Context, req domain.Pe
 		return nil, err
 	}
 
+	if len(persons) == 0 {
+		return &domain.PaginatedPersons{Items: []domain.PersonSummary{}, TotalCount: 0}, nil
+	}
+
+	// HANDLING POLYGAMY IN THE LIST
+	personIDs := make([]uuid.UUID, len(persons))
+	for i, p := range persons {
+		personIDs[i] = p.ID
+	}
+
+	// Query all marriages related to these people
+	var marriages []models.Marriage
+	r.db.WithContext(ctx).
+		Where("husband_id IN ? OR wife_id IN ?", personIDs, personIDs).
+		Order("marriage_order ASC").
+		Find(&marriages)
+
+	// Gather all necessary Spouse IDs to retrieve the FullName (avoid N+1 queries)
+	neededSpouseIDs := make(map[uuid.UUID]bool)
+	for _, m := range marriages {
+		neededSpouseIDs[m.HusbandID] = true
+		neededSpouseIDs[m.WifeID] = true
+	}
+
+	var spouseList []models.Person
+	uniqueSpouseIDs := []uuid.UUID{}
+	for id := range neededSpouseIDs {
+		uniqueSpouseIDs = append(uniqueSpouseIDs, id)
+	}
+	r.db.WithContext(ctx).Where("id IN ?", uniqueSpouseIDs).Find(&spouseList)
+
+	// Map for quick access to information about Spouse
+	spouseInfoMap := make(map[uuid.UUID]domain.SpouseShortInfo)
+	for _, s := range spouseList {
+		spouseInfoMap[s.ID] = domain.SpouseShortInfo{
+			ID: s.ID, FullName: s.FullName, Gender: s.Gender,
+		}
+	}
+
+	// Build SpouseMap: PersonID -> []SpouseShortInfo
+	spouseMap := make(map[uuid.UUID][]domain.SpouseShortInfo)
+	for _, m := range marriages {
+		// If the husband is on the original list, add the wife
+		if _, ok := neededSpouseIDs[m.HusbandID]; ok {
+			if wifeInfo, exists := spouseInfoMap[m.WifeID]; exists {
+				spouseMap[m.HusbandID] = append(spouseMap[m.HusbandID], wifeInfo)
+			}
+		}
+		// If the wife is in the original list, add the husband
+		if _, ok := neededSpouseIDs[m.WifeID]; ok {
+			if husbandInfo, exists := spouseInfoMap[m.HusbandID]; exists {
+				spouseMap[m.WifeID] = append(spouseMap[m.WifeID], husbandInfo)
+			}
+		}
+	}
+
 	items := make([]domain.PersonSummary, len(persons))
 	for i, p := range persons {
-		items[i] = toPersonSummary(p)
+		summary := toPersonSummary(p)
+		summary.Spouses = spouseMap[p.ID]
+		items[i] = summary
 	}
 
 	return &domain.PaginatedPersons{
@@ -551,9 +609,21 @@ func inferRelationship(personA, personB models.Person, path []domain.PathStep) s
 // ==================================================
 
 func toPersonSummary(p models.Person) domain.PersonSummary {
+	// Logic: D3-hierarchy requires a single ParentID.
+	// In Vietnamese genealogy, FatherID is prioritized as the primary axis.
+	var parentID *uuid.UUID
+	if p.FatherID != nil {
+		parentID = p.FatherID
+	} else if p.MotherID != nil {
+		parentID = p.MotherID
+	}
+
 	return domain.PersonSummary{
 		ID:               p.ID,
 		FullName:         p.FullName,
+		ParentID:         parentID,
+		FatherID:         p.FatherID,
+		MotherID:         p.MotherID,
 		NickName:         p.NickName,
 		Gender:           p.Gender,
 		GenerationNumber: p.GenerationNumber,

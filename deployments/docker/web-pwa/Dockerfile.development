@@ -1,18 +1,22 @@
-# Stage 1: Build
+# Stage 1: Development
 FROM node:24-alpine3.23
 
 WORKDIR /app
 
-# Leverage Docker layer caching for dependencies
-# Re-installs only if package files change
-COPY apps/web-pwa/package.json apps/web-pwa/package-lock.json* ./
+# Copy only package definition files to leverage Docker layer caching
+COPY apps/web-pwa/package*.json ./
+
+# Install dependencies (this layer will only re-run if package.json changes)
 RUN npm install
 
-# Development port for Next.js
+# Full code COPY is optional here if using volumes in docker-compose,
+# but recommended as a fallback or template
+COPY apps/web-pwa .
+
 EXPOSE 3000
 
 ENV NODE_ENV=development
-ENV WATCHPACK_POLLING=true
+# Essential for Windows/WSL2 to properly detect file changes (hot reload)
+ENV WATCHPACK_POLLING=true 
 
-# Default to development mode. 
 CMD ["npm", "run", "dev"]

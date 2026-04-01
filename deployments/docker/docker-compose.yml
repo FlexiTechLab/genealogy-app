@@ -145,7 +145,7 @@ services:
       STORAGE_TYPE: ${STORAGE_TYPE}
     volumes:
       - ../../apps/backend:/app
-      - backend_tmp:/app/tmp
+      # - backend_tmp:/app/tmp
     networks:
       - frontend_net
       - backend_net
@@ -166,6 +166,7 @@ services:
     volumes:
       - ../../apps/web-pwa:/app
       - /app/node_modules
+      - /app/.next
     networks:
       - frontend_net
 

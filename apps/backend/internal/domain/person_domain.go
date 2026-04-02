@@ -33,7 +33,6 @@ type RelationshipQueryRequest struct {
 type PersonSummary struct {
 	ID               uuid.UUID  `json:"id"`
 	FullName         string     `json:"full_name"`
-	ParentID         *uuid.UUID `json:"parent_id"` // Important: D3.js use .stratify()
     FatherID         *uuid.UUID `json:"father_id,omitempty"`
     MotherID         *uuid.UUID `json:"mother_id,omitempty"`
 	Spouses []SpouseShortInfo `json:"spouses,omitempty"`

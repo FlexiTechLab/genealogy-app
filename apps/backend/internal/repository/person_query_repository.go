@@ -175,66 +175,38 @@ func (r *personQueryRepository) FilterPersons(ctx context.Context, req domain.Pe
 }
 
 func (r *personQueryRepository) GetAllFamilyMembers(ctx context.Context, treeID uuid.UUID) ([]domain.PersonSummary, error) {
-	var persons []models.Person
-	if err := r.db.WithContext(ctx).
-		Where("tree_id = ?", treeID).
-		Order("generation_number ASC, birth_order ASC").
-		Find(&persons).Error; err != nil {
-		return nil, err
-	}
+    var persons []models.Person
+    // Get all members in the tree
+    if err := r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&persons).Error; err != nil {
+        return nil, err
+    }
 
-	if len(persons) == 0 {
-		return []domain.PersonSummary{}, nil
-	}
+    personMap := make(map[uuid.UUID]*domain.PersonSummary)
+    for _, p := range persons {
+        summary := toPersonSummary(p)
+        summary.Spouses = []domain.SpouseShortInfo{}
+        personMap[p.ID] = &summary
+    }
 
-	personMap := make(map[uuid.UUID]domain.PersonSummary)
-	personIDs := make([]uuid.UUID, len(persons))
+    // Use marriage information to attach Spouses to each person.
+    var marriages []models.Marriage
+    r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&marriages)
 
-	for i, p := range persons {
-		summary := toPersonSummary(p)
-		summary.Spouses = []domain.SpouseShortInfo{}
-		personMap[p.ID] = summary
-		personIDs[i] = p.ID
-	}
+    for _, m := range marriages {
+        if h, ok := personMap[m.HusbandID]; ok {
+            if w, okW := personMap[m.WifeID]; okW {
+                h.Spouses = append(h.Spouses, domain.SpouseShortInfo{ID: w.ID, FullName: w.FullName, Gender: w.Gender})
+                w.Spouses = append(w.Spouses, domain.SpouseShortInfo{ID: h.ID, FullName: h.FullName, Gender: h.Gender})
+            }
+        }
+    }
 
-	var marriages []models.Marriage
-	if err := r.db.WithContext(ctx).
-		Where("tree_id = ?", treeID).
-		Order("marriage_order ASC").
-		Find(&marriages).Error; err != nil {
-		return nil, err
-	}
-
-	for _, m := range marriages {
-		husband, hOk := personMap[m.HusbandID]
-		wife, wOk := personMap[m.WifeID]
-
-		if hOk && wOk {
-			husband.Spouses = append(husband.Spouses, domain.SpouseShortInfo{
-				ID:       wife.ID,
-				FullName: wife.FullName,
-				Gender:   wife.Gender,
-			})
-			personMap[m.HusbandID] = husband
-
-			wife.Spouses = append(wife.Spouses, domain.SpouseShortInfo{
-				ID:       husband.ID,
-				FullName: husband.FullName,
-				Gender:   husband.Gender,
-			})
-			personMap[m.WifeID] = wife
-		}
-	}
-
-	result := make([]domain.PersonSummary, 0, len(personMap))
-
-	for _, p := range persons {
-		if summary, exists := personMap[p.ID]; exists {
-			result = append(result, summary)
-		}
-	}	
-
-	return result, nil
+    // Convert the map to a slice.
+    result := make([]domain.PersonSummary, 0, len(personMap))
+    for _, p := range persons {
+        result = append(result, *personMap[p.ID])
+    }
+    return result, nil
 }
 
 // ==================================================
@@ -675,17 +647,17 @@ func inferRelationship(personA, personB models.Person, path []domain.PathStep) s
 func toPersonSummary(p models.Person) domain.PersonSummary {
 	// Logic: D3-hierarchy requires a single ParentID.
 	// In Vietnamese genealogy, FatherID is prioritized as the primary axis.
-	var parentID *uuid.UUID
-	if p.FatherID != nil {
-		parentID = p.FatherID
-	} else if p.MotherID != nil {
-		parentID = p.MotherID
-	}
+	// var parentID *uuid.UUID
+	// if p.FatherID != nil {
+	// 	parentID = p.FatherID
+	// } else if p.MotherID != nil {
+	// 	parentID = p.MotherID
+	// }
 
 	return domain.PersonSummary{
 		ID:               p.ID,
 		FullName:         p.FullName,
-		ParentID:         parentID,
+		// ParentID:         parentID,
 		FatherID:         p.FatherID,
 		MotherID:         p.MotherID,
 		NickName:         p.NickName,

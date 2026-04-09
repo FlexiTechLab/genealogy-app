@@ -31,26 +31,25 @@ type RelationshipQueryRequest struct {
 // ─────────────────────────────────────────────
 
 type PersonSummary struct {
-	ID               uuid.UUID  `json:"id"`
-	FullName         string     `json:"full_name"`
-    FatherID         *uuid.UUID `json:"father_id,omitempty"`
-    MotherID         *uuid.UUID `json:"mother_id,omitempty"`
-	Spouses []SpouseShortInfo `json:"spouses,omitempty"`
-    // SpouseName string     `json:"spouse_name,omitempty"`
-	NickName         string     `json:"nick_name,omitempty"`
-	Gender           int8       `json:"gender"`
-	GenerationNumber int        `json:"generation_number"`
-	BirthOrder       int        `json:"birth_order"`
-	DateOfBirth      *time.Time `json:"date_of_birth,omitempty"`
-	DateOfDeath      *time.Time `json:"date_of_death,omitempty"`
-	IsAlive          bool       `json:"is_alive"`
-	AvatarURL        string     `json:"avatar_url,omitempty"`
+	ID               uuid.UUID         `json:"id"`
+	FullName         string            `json:"full_name"`
+	FatherID         *uuid.UUID        `json:"father_id,omitempty"`
+	MotherID         *uuid.UUID        `json:"mother_id,omitempty"`
+	Spouses          []SpouseShortInfo `json:"spouses,omitempty"`
+	NickName         string            `json:"nick_name,omitempty"`
+	Gender           int8              `json:"gender"`
+	GenerationNumber int               `json:"generation_number"`
+	BirthOrder       int               `json:"birth_order"`
+	DateOfBirth      *time.Time        `json:"date_of_birth,omitempty"`
+	DateOfDeath      *time.Time        `json:"date_of_death,omitempty"`
+	IsAlive          bool              `json:"is_alive"`
+	AvatarURL        string            `json:"avatar_url,omitempty"`
 }
 
 type SpouseShortInfo struct {
-    ID       uuid.UUID `json:"id"`
-    FullName string    `json:"full_name"`
-    Gender   int8      `json:"gender"`
+	ID       uuid.UUID `json:"id"`
+	FullName string    `json:"full_name"`
+	Gender   int8      `json:"gender"`
 }
 
 type PersonDetail struct {

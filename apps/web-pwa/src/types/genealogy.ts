@@ -13,6 +13,7 @@ export type FamilyMember = {
     mother_id: string | null;
     spouses?: SpouseShortInfo[];
     nick_name?: string;
+    avatar_url?: string;
     gender: number; // 0: Female, 1: Male
     generation_number: number;
     birth_order: number;

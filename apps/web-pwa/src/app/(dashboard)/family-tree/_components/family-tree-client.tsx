@@ -48,7 +48,11 @@ export default function FamilyTreePage() {
         const bloodlineData = rawData.filter(p => {
             const hasFather = p.father_id && allIds.has(p.father_id);
             const hasMother = p.mother_id && allIds.has(p.mother_id);
-            return hasFather || hasMother || p.generation_number === 1;
+            if (hasFather || hasMother) 
+                return true;
+            if (p.generation_number === 1) 
+                return p.gender === 1;
+            return false;
         });
 
         const bloodlineIds = new Set(bloodlineData.map(b => b.id));

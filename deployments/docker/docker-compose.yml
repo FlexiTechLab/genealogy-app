@@ -3,7 +3,7 @@ services:
   genealogy_db:
     image: postgres:18-bookworm
     container_name: ${COMPOSE_PROJECT_NAME}_db
-    restart: always
+    # restart: always
     environment:
       TZ: UTC
       POSTGRES_USER: ${POSTGRES_USER}
@@ -30,7 +30,7 @@ services:
   genealogy_redis:
     image: redis:alpine
     container_name: ${COMPOSE_PROJECT_NAME}_redis
-    restart: always
+    # restart: always
     # No need to expose ports to the host if only the backend uses it.
     # If you need to debug locally: - "${REDIS_PORT:-6379}:6379"
     command: redis-server --save 60 1 --loglevel warning
@@ -51,7 +51,7 @@ services:
     # Add -mdir to save the Raft state, preventing leader re-election upon restart.
     command: 'master -ip=sw_master -mdir=/data'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_master
-    restart: always
+    # restart: always
     volumes:
       - sw_master_data:/data
     networks:
@@ -67,7 +67,7 @@ services:
     image: chrislusf/seaweedfs
     command: 'volume -mserver="sw_master:9333" -port=8080 -ip=sw_volume -max=10'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_volume
-    restart: always
+    # restart: always
     depends_on:
       sw_master:
         condition: service_healthy
@@ -81,7 +81,7 @@ services:
     # The S3 API defaults to port 8333 when the -s3 flag is enabled.
     command: 'filer -s3 -master="sw_master:9333" -ip=sw_filer'
     container_name: ${COMPOSE_PROJECT_NAME}_sw_filer
-    restart: always
+    # restart: always
     ports:
       - "8333:8333" # S3 API for backend/tools
       - "8888:8888" # Filer UI for viewing files
@@ -119,7 +119,7 @@ services:
       context: ../../
       dockerfile: ./deployments/docker/backend/Dockerfile.${APP_ENV}
     container_name: ${COMPOSE_PROJECT_NAME}_api
-    restart: always
+    # restart: always
     depends_on:
       genealogy_db:
         condition: service_healthy
@@ -156,7 +156,7 @@ services:
       context: ../../
       dockerfile: ./deployments/docker/web-pwa/Dockerfile.${APP_ENV}
     container_name: ${COMPOSE_PROJECT_NAME}_web
-    restart: always
+    # restart: always
     ports:
       - "${FRONTEND_PORT}:3000"
     depends_on:
@@ -165,8 +165,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     volumes:
       - ../../apps/web-pwa:/app
-      - /app/node_modules
-      - /app/.next
+      # - /app/node_modules
+      # - /app/.next
     networks:
       - frontend_net
 
@@ -174,7 +174,7 @@ services:
   adminer:
     image: adminer
     container_name: ${COMPOSE_PROJECT_NAME}_adminer
-    restart: always
+    # restart: always
     ports:
       - "${ADMINER_PORT}:8080"
     networks:

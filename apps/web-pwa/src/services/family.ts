@@ -1,26 +1,20 @@
+import axiosClient from '@/lib/axios';
 import { FamilyMember } from '@/types/genealogy';
 import { ApiResponse } from '@/types/api';
+import { PersonDetail } from '@/types/person-detail';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export const personService = {
+    /**
+     * Get a list of family members.
+     */
+    getFamilyMembers: (treeId: string): Promise<ApiResponse<FamilyMember[]>> => {
+        return axiosClient.get(`/trees/${treeId}/persons`);
+    },
 
-export const getFamilyMembers = async (treeId: string): Promise<FamilyMember[]> => {
-    if (!API_BASE_URL) {
-        throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+    /**
+     * Obtaining a person's details
+     */
+    getPersonDetail: (treeId: string, personId: string): Promise<ApiResponse<PersonDetail>> => {
+        return axiosClient.get(`/trees/${treeId}/persons/${personId}`);
     }
-    const response = await fetch(`${API_BASE_URL}/trees/${treeId}/persons`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            // 'Authorization': `Bearer ${token}`
-        },
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Lỗi hệ thống: ${response.status}`);
-    }
-
-    const result: ApiResponse<FamilyMember[]> = await response.json();
-
-    return result.data;
 };

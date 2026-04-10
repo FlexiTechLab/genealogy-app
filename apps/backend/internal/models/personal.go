@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Person struct {
@@ -16,20 +17,20 @@ type Person struct {
 	BirthOrder       int        `json:"birth_order"`
 
 	// Life info
-	DateOfBirth  *time.Time `json:"date_of_birth"`
-	DateOfDeath  *time.Time `json:"date_of_death"`
-	IsAlive      bool       `gorm:"default:true" json:"is_alive"`
+	DateOfBirth   *time.Time `json:"date_of_birth"`
+	DateOfDeath   *time.Time `json:"date_of_death"`
+	IsAlive       bool       `gorm:"default:true" json:"is_alive"`
 	LongevityInfo string     `gorm:"type:text" json:"longevity_info"`
 
 	// Relationships (Self-referencing)
-	FatherID     *uuid.UUID `gorm:"type:uuid" json:"father_id"`
-	MotherID     *uuid.UUID `gorm:"type:uuid" json:"mother_id"`
-	Father       *Person    `gorm:"foreignKey:FatherID" json:"father,omitempty"`
-	Mother       *Person    `gorm:"foreignKey:MotherID" json:"mother,omitempty"`
+	FatherID *uuid.UUID `gorm:"type:uuid" json:"father_id"`
+	MotherID *uuid.UUID `gorm:"type:uuid" json:"mother_id"`
+	Father   *Person    `gorm:"foreignKey:FatherID" json:"father,omitempty"`
+	Mother   *Person    `gorm:"foreignKey:MotherID" json:"mother,omitempty"`
 
-	ChildType    string     `gorm:"size:50;default:'biological'" json:"child_type"`
-	SyncHash     string     `gorm:"size:64" json:"-"`
-	Metadata     JSONB      `gorm:"type:jsonb" json:"metadata"`
+	ChildType string `gorm:"size:50;default:'biological'" json:"child_type"`
+	SyncHash  string `gorm:"size:64" json:"-"`
+	Metadata  JSONB  `gorm:"type:jsonb" json:"metadata"`
 }
 
 func (Person) TableName() string { return "persons" }

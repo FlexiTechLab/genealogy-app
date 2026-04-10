@@ -12,23 +12,23 @@ ENV=${1:-prod}
 
 # 2. Define the corresponding .env file
 if [ "$ENV" == "prod" ]; then
-    ENV_FILE=".env.prod"
-    echo "🚀 Starting in PRODUCTION mode..."
+	ENV_FILE=".env.prod"
+	echo "🚀 Starting in PRODUCTION mode..."
 else
-    ENV_FILE=".env"
-    echo "🛠️ Starting in DEVELOPMENT mode..."
+	ENV_FILE=".env"
+	echo "🛠️ Starting in DEVELOPMENT mode..."
 fi
 
 # 3. Check if the .env file exists
 if [ ! -f "$ENV_FILE" ]; then
-    echo "❌ Error: $ENV_FILE not found!"
-    exit 1
+	echo "❌ Error: $ENV_FILE not found!"
+	exit 1
 fi
 
 # 4. Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
-    echo "❌ Error: Docker is not running. Please start Docker and try again."
-    exit 1
+	echo "❌ Error: Docker is not running. Please start Docker and try again."
+	exit 1
 fi
 
 # docker compose -f deployments/docker/docker-compose.yml --env-file .env down -v

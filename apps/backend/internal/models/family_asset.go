@@ -6,12 +6,12 @@ import (
 
 type FamilyAsset struct {
 	BaseUUID
-	
-	TreeID    uuid.UUID `gorm:"type:uuid;not null;index" json:"tree_id"`
+
+	TreeID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"tree_id"`
 	BranchID  *uuid.UUID `gorm:"type:uuid;index" json:"branch_id"`
-	AssetType string    `gorm:"size:100" json:"asset_type"`
-	Title     string    `gorm:"size:255;not null" json:"title"`
-	Content   string    `gorm:"type:text" json:"content"`
+	AssetType string     `gorm:"size:100" json:"asset_type"`
+	Title     string     `gorm:"size:255;not null" json:"title"`
+	Content   string     `gorm:"type:text" json:"content"`
 
 	// Relations
 	Tree   *Tree   `gorm:"foreignKey:TreeID" json:"tree,omitempty"`

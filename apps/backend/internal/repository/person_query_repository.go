@@ -175,38 +175,38 @@ func (r *personQueryRepository) FilterPersons(ctx context.Context, req domain.Pe
 }
 
 func (r *personQueryRepository) GetAllFamilyMembers(ctx context.Context, treeID uuid.UUID) ([]domain.PersonSummary, error) {
-    var persons []models.Person
-    // Get all members in the tree
-    if err := r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&persons).Error; err != nil {
-        return nil, err
-    }
+	var persons []models.Person
+	// Get all members in the tree
+	if err := r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&persons).Error; err != nil {
+		return nil, err
+	}
 
-    personMap := make(map[uuid.UUID]*domain.PersonSummary)
-    for _, p := range persons {
-        summary := toPersonSummary(p)
-        summary.Spouses = []domain.SpouseShortInfo{}
-        personMap[p.ID] = &summary
-    }
+	personMap := make(map[uuid.UUID]*domain.PersonSummary)
+	for _, p := range persons {
+		summary := toPersonSummary(p)
+		summary.Spouses = []domain.SpouseShortInfo{}
+		personMap[p.ID] = &summary
+	}
 
-    // Use marriage information to attach Spouses to each person.
-    var marriages []models.Marriage
-    r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&marriages)
+	// Use marriage information to attach Spouses to each person.
+	var marriages []models.Marriage
+	r.db.WithContext(ctx).Where("tree_id = ?", treeID).Find(&marriages)
 
-    for _, m := range marriages {
-        if h, ok := personMap[m.HusbandID]; ok {
-            if w, okW := personMap[m.WifeID]; okW {
-                h.Spouses = append(h.Spouses, domain.SpouseShortInfo{ID: w.ID, FullName: w.FullName, Gender: w.Gender})
-                w.Spouses = append(w.Spouses, domain.SpouseShortInfo{ID: h.ID, FullName: h.FullName, Gender: h.Gender})
-            }
-        }
-    }
+	for _, m := range marriages {
+		if h, ok := personMap[m.HusbandID]; ok {
+			if w, okW := personMap[m.WifeID]; okW {
+				h.Spouses = append(h.Spouses, domain.SpouseShortInfo{ID: w.ID, FullName: w.FullName, Gender: w.Gender})
+				w.Spouses = append(w.Spouses, domain.SpouseShortInfo{ID: h.ID, FullName: h.FullName, Gender: h.Gender})
+			}
+		}
+	}
 
-    // Convert the map to a slice.
-    result := make([]domain.PersonSummary, 0, len(personMap))
-    for _, p := range persons {
-        result = append(result, *personMap[p.ID])
-    }
-    return result, nil
+	// Convert the map to a slice.
+	result := make([]domain.PersonSummary, 0, len(personMap))
+	for _, p := range persons {
+		result = append(result, *personMap[p.ID])
+	}
+	return result, nil
 }
 
 // ==================================================
@@ -655,8 +655,8 @@ func toPersonSummary(p models.Person) domain.PersonSummary {
 	// }
 
 	return domain.PersonSummary{
-		ID:               p.ID,
-		FullName:         p.FullName,
+		ID:       p.ID,
+		FullName: p.FullName,
 		// ParentID:         parentID,
 		FatherID:         p.FatherID,
 		MotherID:         p.MotherID,

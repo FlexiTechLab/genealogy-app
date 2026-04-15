@@ -25,9 +25,11 @@ func main() {
 
 	// Init Repositories
 	personQueryRepo := repository.NewPersonQueryRepository(db)
+	eventQueryRepo := repository.NewEventRepository(db)
 
 	// Init Handlers
 	genealogyHandler := handlers.NewGenealogyHandler(personQueryRepo)
+	eventHandler := handlers.NewEventHandler(eventQueryRepo)
 
 	// Router
 	// Initialize the router to default settings.
@@ -123,6 +125,31 @@ func main() {
 			// GET /api/v1/trees/:tree_id/relationship
 			// Query: person_a_id (required), person_b_id (required)
 			trees.GET("/:tree_id/relationship", genealogyHandler.GetRelationship)
+
+			// List all events of a family tree with optional filters
+			// GET /api/v1/trees/:tree_id/events
+			// Query: event_type, is_lunar, from_date (YYYY-MM-DD), to_date (YYYY-MM-DD),
+			//        upcoming (bool), page, page_size
+			trees.GET("/:tree_id/events", eventHandler.ListEvents)
+
+			// Create a new event for a family tree
+			// POST /api/v1/trees/:tree_id/events
+			// Body: title (required), description, event_date (required), is_lunar,
+			//       event_type (required), reminder_days (default=3)
+			trees.POST("/:tree_id/events", eventHandler.CreateEvent)
+
+			// Retrieve a single event by ID
+			// GET /api/v1/trees/:tree_id/events/:event_id
+			trees.GET("/:tree_id/events/:event_id", eventHandler.GetEvent)
+
+			// Partially update an event (only provided fields are updated)
+			// PATCH /api/v1/trees/:tree_id/events/:event_id
+			// Body: title, description, event_date, is_lunar, event_type, reminder_days
+			trees.PATCH("/:tree_id/events/:event_id", eventHandler.UpdateEvent)
+
+			// Delete an event permanently
+			// DELETE /api/v1/trees/:tree_id/events/:event_id
+			trees.DELETE("/:tree_id/events/:event_id", eventHandler.DeleteEvent)
 		}
 	}
 

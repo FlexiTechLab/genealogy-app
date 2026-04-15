@@ -8,6 +8,7 @@ import (
 
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/config"
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/handlers"
+	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/service"
 
 	// "github.com/FlexiTechLab/genealogy-app/apps/backend/internal/middlewares"
 	"github.com/FlexiTechLab/genealogy-app/apps/backend/internal/repository"
@@ -24,10 +25,15 @@ func main() {
 	db := dbInstance.Db
 
 	// Init Repositories
+	userRepo := repository.NewUserRepository(db)
 	personQueryRepo := repository.NewPersonQueryRepository(db)
 	eventQueryRepo := repository.NewEventRepository(db)
 
+	// Init Services
+	authService := service.NewAuthService(userRepo)
+
 	// Init Handlers
+	authHandler := handlers.NewAuthHandler(authService)
 	genealogyHandler := handlers.NewGenealogyHandler(personQueryRepo)
 	eventHandler := handlers.NewEventHandler(eventQueryRepo)
 
@@ -88,6 +94,13 @@ func main() {
 				})
 			}
 		})
+
+		// Auth Routes
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+		}
 
 		// -- Trees & Genealogy (authenticated)
 		trees := v1.Group("/trees")
